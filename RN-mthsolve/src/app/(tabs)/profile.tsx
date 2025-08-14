@@ -1,77 +1,121 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import React, { FC } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function App() {
+interface MenuItemProps {
+  title: string;
+  onPress: () => void;
+}
+
+const MenuItem: FC<MenuItemProps> = ({ title, onPress }) => {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f9f9fb" }}>
+    <Pressable style={styles.menuItem} onPress={onPress}>
+      <Text style={styles.menuText}>{title}</Text>
+      <Ionicons name="chevron-forward" size={20} color="#999" />
+    </Pressable>
+  );
+};
+
+const App: FC = () => {
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
       <ScrollView contentContainerStyle={styles.container}>
+        {/* Header with icons */}
+        <View style={styles.header}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}></View>
+          <View style={styles.rightIcons}>
+            <TouchableOpacity onPress={() => router.navigate("/pages/mail")}>
+              <Ionicons name="mail-outline" size={24} color="#000" style={{ marginRight: 16 }} />
+            </TouchableOpacity>
 
-        {/* Đăng nhập */}
-        <Text style={styles.title}>Đăng nhập</Text>
-
-        {/* Dùng thử miễn phí */}
-        <View style={styles.trialContainer}>
-          <Text style={styles.trialBadge}>Dùng thử miễn phí</Text>
-          <View style={styles.plusContainer}>
-            <Text style={styles.plusText}>Gauth </Text>
-            <Text style={styles.plusTag}>PLUS</Text>
+            <Ionicons name="menu" size={28} color="#000" />
           </View>
-          <Text style={styles.desc}>Đăng ký để nhận các lợi ích độc quyền</Text>
-          <TouchableOpacity>
-            <Text style={styles.unlock}>Mở khóa</Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Danh mục */}
+        {/* Login */}
+        <TouchableOpacity style={styles.loginRow}>
+          <Text style={styles.title}>Login</Text>
+          <Ionicons name="chevron-forward" size={22} color="#999" />
+        </TouchableOpacity>
+
+        {/* Free trial */}
+        <Pressable style={styles.trialContainer} onPress={() => router.navigate("/pages/remind")}>
+          <View>
+            <Text style={styles.trialBadge}>Free Trial</Text>
+            <View style={styles.plusContainer}>
+              <Text style={styles.plusText}>G </Text>
+              <Text style={styles.plusTag}>PLUS</Text>
+            </View>
+            <Text style={styles.desc}>Subscribe to receive exclusive benefits</Text>
+          </View>
+          <View style={{ justifyContent: "center", alignItems: "center" }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center" }}
+
+            >
+              {/* <Text style={styles.unlock}>Unlock</Text> */}
+              <Ionicons name="chevron-forward" size={22} color="#999" />
+            </View>
+          </View>
+        </Pressable>
+
+        {/* Menu */}
         <View style={styles.menu}>
-          <MenuItem title="Lịch sử hỏi đáp" />
-          <MenuItem title="Lời nhắc" />
-          <MenuItem title="Phản hồi" />
+          <MenuItem title="Q&A History" onPress={() => router.navigate("/pages/history")} />
+          <MenuItem title="Reminders" onPress={() => router.navigate("/pages/history")} />
+          <MenuItem title="Feedback" onPress={() => router.navigate("/pages/history")} />
         </View>
 
-        {/* Mời bạn bè */}
+        {/* Invite friends */}
         <View style={styles.inviteContainer}>
           <View style={styles.inviteHeader}>
-            <Text style={styles.inviteTitle}>Mời bạn bè</Text>
-            <Text style={styles.freePoints}>Điểm miễn phí</Text>
+            <Text style={styles.inviteTitle}>Invite Friends</Text>
+            <Text style={styles.freePoints}>Free Points</Text>
           </View>
-          <Text style={styles.progress}>1 - 2 - 3 - 4 - 5 → 🎁 100</Text>
+          <Text style={styles.progress}>1   2   3   4   5 → 🎁 100</Text>
           <TouchableOpacity style={styles.shareBtn}>
-            <Text style={styles.shareText}>Chia sẻ</Text>
+            <Text style={styles.shareText}>Share</Text>
           </TouchableOpacity>
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );
-}
-
-type MenuItemProps = {
-  title: string;
 };
 
-function MenuItem({ title }: MenuItemProps) {
-  return (
-    <TouchableOpacity style={styles.menuItem}>
-      <Text style={styles.menuText}>{title}</Text>
-    </TouchableOpacity>
-  );
-}
+export default App;
 
 const styles = StyleSheet.create({
   container: {
     padding: 20,
     backgroundColor: "#f9f9fb",
   },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  rightIcons: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  loginRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 20,
   },
   trialContainer: {
-    backgroundColor: "#eef1ff",
-    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "lightgray",
+    borderRadius: 30,
     padding: 16,
     marginBottom: 20,
   },
@@ -120,9 +164,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   menuItem: {
-    padding: 16,
-    borderBottomColor: "#ddd",
-    borderBottomWidth: 1,
+    padding: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   menuText: {
     fontSize: 16,
