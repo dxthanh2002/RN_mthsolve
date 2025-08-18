@@ -1,4 +1,3 @@
-import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import React, { useEffect, useState } from "react";
@@ -9,92 +8,32 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View
 } from "react-native";
 
 export default function CameraScreen() {
-  const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
-  const [imageInfo, setImageInfo] = useState<{ width: number; height: number } | null>(null);
 
+  // Permissions
   useEffect(() => {
-    (async () => {
+    const requestPermissions = async () => {
       await ImagePicker.requestCameraPermissionsAsync();
       await MediaLibrary.requestPermissionsAsync();
-    })();
+    };
+    requestPermissions();
   }, []);
 
-  const openCamera = async () => {
-    try {
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: false,
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        const asset = result.assets[0];
-        setOriginalImage(asset.uri);
-        setImageInfo({ width: asset.width, height: asset.height });
-        setCroppedImage(null);
-      }
-    } catch (error) {
-      console.error('Camera error:', error);
-      Alert.alert('Lỗi', 'Không thể mở camera');
-    }
-  };
-
-  // Crop presets cho các trường hợp thường gặp
-  const cropPresets = [
-    { name: 'Trung tâm', x: 0.1, y: 0.1, w: 0.8, h: 0.8 },
-    { name: 'Nửa trên', x: 0, y: 0, w: 1, h: 0.5 },
-    { name: 'Nửa dưới', x: 0, y: 0.5, w: 1, h: 0.5 },
-    { name: 'Vuông giữa', x: 0.125, y: 0.2, w: 0.75, h: 0.6 },
-  ];
-
-  const cropWithPreset = async (preset: typeof cropPresets[0]) => {
-    if (!originalImage || !imageInfo) return;
-
-    try {
-      const cropData = {
-        originX: imageInfo.width * preset.x,
-        originY: imageInfo.height * preset.y,
-        width: imageInfo.width * preset.w,
-        height: imageInfo.height * preset.h,
-      };
-
-      const cropped = await ImageManipulator.manipulateAsync(
-        originalImage,
-        [{ crop: cropData }],
-        { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG }
-      );
-
-      setCroppedImage(cropped.uri);
-
-      // Lưu vào gallery
-      await MediaLibrary.saveToLibraryAsync(cropped.uri);
-      Alert.alert('Thành công', `Đã crop "${preset.name}" và lưu ảnh!`);
-
-    } catch (error) {
-      console.error('Crop error:', error);
-      Alert.alert('Lỗi', 'Không thể crop ảnh');
-    }
-  };
-
-  // Sử dụng editor mặc định của ImagePicker (đơn giản nhất)
+  // Camera functions
   const openCameraWithEditor = async () => {
     try {
       const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true, // Bật editor mặc định
-        aspect: [4, 3],
+        allowsEditing: true,
+        aspect: [16, 9],
         quality: 1,
       });
 
       if (!result.canceled) {
-        setOriginalImage(result.assets[0].uri);
-        setCroppedImage(result.assets[0].uri); // Ảnh đã được crop bằng editor
-
-        // Lưu vào gallery
+        setCroppedImage(result.assets[0].uri);
         await MediaLibrary.saveToLibraryAsync(result.assets[0].uri);
         Alert.alert('Thành công', 'Đã chụp và crop ảnh!');
       }
@@ -104,6 +43,11 @@ export default function CameraScreen() {
     }
   };
 
+  const retakePhoto = () => {
+    setCroppedImage(null);
+  };
+
+  // Upload function
   const uploadImage = async () => {
     if (!croppedImage) {
       Alert.alert('Lỗi', 'Chưa có ảnh để gửi');
@@ -119,8 +63,25 @@ export default function CameraScreen() {
       } as any);
 
       // Thay YOUR_BACKEND_URL bằng URL backend thực tế
+      // const response = await fetch('YOUR_BACKEND_URL/upload', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'multipart/form-data',
+      //   },
+      //   body: formData,
+      // });
+
+      // if (response.ok) {
+      //   const result = await response.json();
+      //   Alert.alert('Thành công', 'Đã gửi ảnh lên server!');
+      //   console.log('Upload result:', result);
+      // } else {
+      //   Alert.alert('Lỗi', 'Không thể gửi ảnh');
+      // }
+
+      // Mock success for demo
       console.log('Ready to upload:', croppedImage);
-      Alert.alert('Demo', 'Sẵn sàng gửi lên backend!\nURI: ' + croppedImage);
+      Alert.alert('Demo', 'Sẵn sàng gửi lên backend!');
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -128,158 +89,143 @@ export default function CameraScreen() {
     }
   };
 
-  const resetImages = () => {
-    setOriginalImage(null);
-    setCroppedImage(null);
-    setImageInfo(null);
-  };
-
-  return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>📱 Giải Toán - Camera</Text>
-
-      <View style={styles.buttonContainer}>
-        <Button title="📸 Chụp ảnh (Manual Crop)" onPress={openCamera} />
-        <View style={styles.spacer} />
+  // Render functions
+  const renderCameraSection = () => (
+    <View style={styles.cameraSection}>
+      <View style={styles.cameraButtonContainer}>
         <Button
-          title="📸 Chụp ảnh (Auto Editor)"
+          title="📸 Chụp ảnh bài toán"
           onPress={openCameraWithEditor}
+          color="#3498db"
+        />
+      </View>
+    </View>
+  );
+
+  const renderResultSection = () => (
+    <View style={styles.resultSection}>
+      <Text style={styles.sectionTitle}>✅ Ảnh bài toán đã crop:</Text>
+      {croppedImage && (
+        <Image
+          source={{ uri: croppedImage }}
+          style={styles.preview}
+          resizeMode="contain"
+        />
+      )}
+
+      <View style={styles.actionButtons}>
+        <Button
+          title="📤 Gửi lên server để giải"
+          onPress={uploadImage}
+          color="#27ae60"
+        />
+        <Button
+          title="📸 Chụp lại"
+          onPress={retakePhoto}
           color="#e74c3c"
         />
       </View>
+    </View>
+  );
 
-      {originalImage && !croppedImage && (
-        <View style={styles.imageSection}>
-          <Text style={styles.sectionTitle}>Ảnh gốc:</Text>
-          <Image
-            source={{ uri: originalImage }}
-            style={styles.preview}
-            resizeMode="contain"
-          />
+  const renderFooter = () => (
+    <View style={styles.footer}>
+      <Text style={styles.footerText}>
+        Đảm bảo bài toán rõ ràng và đủ sáng
+      </Text>
+    </View>
+  );
 
-          <Text style={styles.presetTitle}>Chọn vùng crop:</Text>
-          <View style={styles.presetContainer}>
-            {cropPresets.map((preset, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.presetButton}
-                onPress={() => cropWithPreset(preset)}
-              >
-                <Text style={styles.presetText}>{preset.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
+  // Main render
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <Text style={styles.title}>📱 Giải Toán</Text>
+      <Text style={styles.subtitle}>Chụp ảnh bài toán để giải</Text>
 
-      {croppedImage && (
-        <View style={styles.imageSection}>
-          <Text style={styles.sectionTitle}>Ảnh đã crop:</Text>
-          <Image
-            source={{ uri: croppedImage }}
-            style={styles.preview}
-            resizeMode="contain"
-          />
-          <View style={styles.actionButtons}>
-            <Button
-              title="📤 Gửi lên server"
-              onPress={uploadImage}
-              color="#27ae60"
-            />
-            <Button
-              title="🔄 Chụp lại"
-              onPress={resetImages}
-              color="#f39c12"
-            />
-          </View>
-        </View>
-      )}
+      {!croppedImage ? renderCameraSection() : renderResultSection()}
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          💡 Tip: Dùng "Auto Editor" để crop nhanh hoặc "Manual Crop" để chọn vùng cụ thể
-        </Text>
-      </View>
+      {renderFooter()}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  // Container styles
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: "#f8f9fa",
   },
+  contentContainer: {
+    padding: 20,
+    minHeight: '100%',
+    justifyContent: 'center',
+  },
+
+  // Header styles
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 5,
     color: '#2c3e50',
   },
-  buttonContainer: {
-    marginBottom: 20,
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 30,
+    color: '#7f8c8d',
+    fontStyle: 'italic',
   },
-  spacer: {
-    height: 10,
-  },
-  imageSection: {
-    marginBottom: 20,
+
+  // Camera section styles
+  cameraSection: {
     alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  cameraButtonContainer: {
+    width: '80%',
+  },
+
+  // Result section styles
+  resultSection: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#34495e',
+    marginBottom: 15,
+    color: '#27ae60',
+    textAlign: 'center',
   },
   preview: {
-    width: 280,
-    height: 200,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#bdc3c7',
-    marginBottom: 15,
-  },
-  presetTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 10,
-    color: '#7f8c8d',
-  },
-  presetContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    justifyContent: 'center',
+    width: 300,
+    height: 250,
+    borderRadius: 15,
+    borderWidth: 3,
+    borderColor: '#27ae60',
     marginBottom: 20,
-  },
-  presetButton: {
-    backgroundColor: '#3498db',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  presetText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
+    backgroundColor: '#fff',
   },
   actionButtons: {
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center',
-    flexWrap: 'wrap',
+    width: '100%',
+    gap: 15,
   },
+
+  // Footer styles
   footer: {
-    marginTop: 20,
+    marginTop: 30,
     padding: 15,
-    backgroundColor: '#ecf0f1',
+    backgroundColor: '#fff3cd',
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ffeaa7',
   },
   footerText: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: '#856404',
     textAlign: 'center',
     fontStyle: 'italic',
   },
