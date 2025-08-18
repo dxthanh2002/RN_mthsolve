@@ -14,40 +14,43 @@ import {
 export default function CameraScreen() {
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
 
-  // Permissions
+  // Yêu cầu quyền và mở camera ngay khi component được mount
   useEffect(() => {
-    const requestPermissions = async () => {
+    const initializeCamera = async () => {
+      // Yêu cầu các quyền cần thiết
       await ImagePicker.requestCameraPermissionsAsync();
       await MediaLibrary.requestPermissionsAsync();
+      // [MODIFIED] Mở camera ngay lập tức
+      openCameraWithEditor();
     };
-    requestPermissions();
+    initializeCamera();
   }, []);
 
-  // Camera functions
+  // Hàm mở camera và cho phép chỉnh sửa (cắt ảnh)
   const openCameraWithEditor = async () => {
     try {
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
-        aspect: [16, 9],
         quality: 1,
       });
 
       if (!result.canceled) {
         setCroppedImage(result.assets[0].uri);
         await MediaLibrary.saveToLibraryAsync(result.assets[0].uri);
-        Alert.alert('Thành công', 'Đã chụp và crop ảnh!');
+        Alert.alert('Thành công', 'Đã chụp và cắt ảnh!');
       }
     } catch (error) {
-      console.error('Camera error:', error);
+      console.error('Lỗi Camera:', error);
       Alert.alert('Lỗi', 'Không thể mở camera');
     }
   };
 
+  // [MODIFIED] Hàm để chụp lại ảnh, giờ sẽ mở thẳng camera
   const retakePhoto = () => {
-    setCroppedImage(null);
+    openCameraWithEditor();
   };
 
-  // Upload function
+  // Hàm tải ảnh lên server (hiện tại là giả lập)
   const uploadImage = async () => {
     if (!croppedImage) {
       Alert.alert('Lỗi', 'Chưa có ảnh để gửi');
@@ -62,39 +65,24 @@ export default function CameraScreen() {
         name: 'math_problem.jpg',
       } as any);
 
-      // Thay YOUR_BACKEND_URL bằng URL backend thực tế
-      // const response = await fetch('YOUR_BACKEND_URL/upload', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'multipart/form-data',
-      //   },
-      //   body: formData,
-      // });
-
-      // if (response.ok) {
-      //   const result = await response.json();
-      //   Alert.alert('Thành công', 'Đã gửi ảnh lên server!');
-      //   console.log('Upload result:', result);
-      // } else {
-      //   Alert.alert('Lỗi', 'Không thể gửi ảnh');
-      // }
-
-      // Mock success for demo
-      console.log('Ready to upload:', croppedImage);
+      // Giả lập việc gửi thành công để demo
+      console.log('Sẵn sàng để tải lên:', croppedImage);
       Alert.alert('Demo', 'Sẵn sàng gửi lên backend!');
 
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Lỗi tải lên:', error);
       Alert.alert('Lỗi', 'Có lỗi xảy ra khi gửi ảnh');
     }
   };
 
-  // Render functions
+  // --- Các hàm render giao diện ---
+
+  // Giao diện này giờ là phương án dự phòng nếu người dùng hủy camera lần đầu
   const renderCameraSection = () => (
     <View style={styles.cameraSection}>
       <View style={styles.cameraButtonContainer}>
         <Button
-          title="📸 Chụp ảnh bài toán"
+          title="📸 Mở lại Camera"
           onPress={openCameraWithEditor}
           color="#3498db"
         />
@@ -102,9 +90,10 @@ export default function CameraScreen() {
     </View>
   );
 
+  // Render giao diện sau khi đã có ảnh đã cắt
   const renderResultSection = () => (
     <View style={styles.resultSection}>
-      <Text style={styles.sectionTitle}>✅ Ảnh bài toán đã crop:</Text>
+      <Text style={styles.sectionTitle}>✅ Ảnh bài toán đã chọn:</Text>
       {croppedImage && (
         <Image
           source={{ uri: croppedImage }}
@@ -128,19 +117,20 @@ export default function CameraScreen() {
     </View>
   );
 
+  // Render phần footer hướng dẫn
   const renderFooter = () => (
     <View style={styles.footer}>
       <Text style={styles.footerText}>
-        Đảm bảo bài toán rõ ràng và đủ sáng
+        Mẹo: Hãy đảm bảo ảnh chụp rõ nét và đủ sáng
       </Text>
     </View>
   );
 
-  // Main render
+  // Render chính của component
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <Text style={styles.title}>📱 Giải Toán</Text>
-      <Text style={styles.subtitle}>Chụp ảnh bài toán để giải</Text>
+      <Text style={styles.title}>📱 Giải Toán AI</Text>
+      <Text style={styles.subtitle}>Chụp ảnh bài toán để nhận lời giải</Text>
 
       {!croppedImage ? renderCameraSection() : renderResultSection()}
 
@@ -149,8 +139,9 @@ export default function CameraScreen() {
   );
 }
 
+// --- StyleSheet ---
 const styles = StyleSheet.create({
-  // Container styles
+  // Kiểu cho container
   container: {
     flex: 1,
     backgroundColor: "#f8f9fa",
@@ -161,7 +152,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Header styles
+  // Kiểu cho tiêu đề
   title: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -177,7 +168,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  // Camera section styles
+  // Kiểu cho khu vực camera
   cameraSection: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -187,7 +178,7 @@ const styles = StyleSheet.create({
     width: '80%',
   },
 
-  // Result section styles
+  // Kiểu cho khu vực kết quả
   resultSection: {
     alignItems: 'center',
     flex: 1,
@@ -214,7 +205,7 @@ const styles = StyleSheet.create({
     gap: 15,
   },
 
-  // Footer styles
+  // Kiểu cho footer
   footer: {
     marginTop: 30,
     padding: 15,
