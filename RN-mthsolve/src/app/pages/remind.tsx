@@ -1,10 +1,10 @@
 import { Text, View } from "react-native";
 
-const Remind = () => {
+const RemindPage = () => {
     return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text>Remind Page</Text>
+        <View style={{ flex: 1 }}>
+            <Text>RemindPage Page</Text>
         </View>
     );
 }
-export default Remind;
+export default RemindPage;

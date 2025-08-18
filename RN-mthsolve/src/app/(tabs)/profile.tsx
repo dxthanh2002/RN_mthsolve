@@ -27,10 +27,13 @@ const App: FC = () => {
           <View style={{ flexDirection: "row", alignItems: "center" }}></View>
           <View style={styles.rightIcons}>
             <TouchableOpacity onPress={() => router.navigate("/pages/mail")}>
-              <Ionicons name="mail-outline" size={24} color="#000" style={{ marginRight: 16 }} />
+              <Ionicons name="mail-outline" size={30} color="#000" style={{ marginRight: 16 }} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.navigate("/setting/setting.modal")}>
+              <Ionicons name="menu" size={30} color="#000" />
             </TouchableOpacity>
 
-            <Ionicons name="menu" size={28} color="#000" />
+
           </View>
         </View>
 
