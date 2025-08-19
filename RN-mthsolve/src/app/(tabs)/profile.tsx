@@ -32,8 +32,6 @@ const App: FC = () => {
             <TouchableOpacity onPress={() => router.navigate("/setting/setting.modal")}>
               <Ionicons name="menu" size={30} color="#000" />
             </TouchableOpacity>
-
-
           </View>
         </View>
 
