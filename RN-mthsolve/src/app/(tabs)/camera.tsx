@@ -14,14 +14,11 @@ import {
 export default function CameraScreen() {
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
 
-  // Yêu cầu quyền và mở camera ngay khi component được mount
   useEffect(() => {
     const initializeCamera = async () => {
       // Yêu cầu các quyền cần thiết
       await ImagePicker.requestCameraPermissionsAsync();
       await MediaLibrary.requestPermissionsAsync();
-      // [MODIFIED] Mở camera ngay lập tức
-      openCameraWithEditor();
     };
     initializeCamera();
   }, []);

@@ -1,7 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
@@ -26,6 +26,15 @@ export default function TabLayout() {
         }),
       }}
     >
+      <Tabs.Screen
+        name="CameraScreen"
+        options={{
+          title: 'CameraScreen',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="camera" size={size} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="camera"
         options={{
