@@ -20,7 +20,8 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "package": "com.anonymous.RNmthsolve"
     },
     "web": {
       "bundler": "metro",
@@ -32,7 +33,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "@/assets/images/splash-icon.png",
+          "image": "./src/assets/images/splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -49,6 +50,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "71c789c9-38fe-4cac-811b-72b7d46a2021"
+      }
+    },
+    "owner": "dxthanh2002"
   }
 }
