@@ -66,7 +66,10 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
+      "router": {
+        "routeConvention": "expo-router",
+        "rootDirectory": "src/app"
+      },
       "eas": {
         "projectId": "71c789c9-38fe-4cac-811b-72b7d46a2021"
       }

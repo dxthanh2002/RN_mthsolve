@@ -3,9 +3,11 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import { CameraType, CameraView, FlashMode, useCameraPermissions } from 'expo-camera';
 import * as ImageExpoPicker from "expo-image-picker";
 import * as MediaLibrary from 'expo-media-library';
+import * as ImagePicker from "react-native-image-crop-picker";
 
 
-import React, { useEffect, useRef, useState } from 'react';
+import { router } from 'expo-router';
+import React, { useRef, useState } from 'react';
 import {
     Alert,
     Button,
@@ -89,24 +91,28 @@ export default function App() {
         }
     };
 
-    // const openGallery = async () => {
-    //     try {
-    //         const result = await ImagePicker.openPicker({
-    //             cropping: true,
-    //             mediaType: 'photo',
-    //             includeBase64: false,
-    //             freeStyleCropEnabled: true,
-    //         });
+    const openGallery = async () => {
+        try {
+            const result = await ImagePicker.openPicker({
+                cropping: true,
+                mediaType: 'photo',
+                includeBase64: false,
+                freeStyleCropEnabled: true,
+            });
 
-    //         if (result) {
-    //             setCroppedImage(result.path);
-    //             await MediaLibrary.saveToLibraryAsync(result.path);
+            if (result) {
+                setCroppedImage(result.path);
+                await MediaLibrary.saveToLibraryAsync(result.path);
+            }
+        } catch (error: any) {
+            if (error.code === 'E_PICKER_CANCELLED') {
+                router.replace("/(tabs)/CameraScreen");
+            } else {
+                console.error("Open gallery error:", error);
+            }
+        }
+    };
 
-    //         }
-    //     } catch (error) {
-    //         console.error('Lỗi chọn ảnh:', error);
-    //     }
-    // }
 
 
 
@@ -183,7 +189,7 @@ export default function App() {
                     {/* Camera Controls */}
                     <View style={styles.buttonContainer}>
                         {/* Library Camera Button */}
-                        <TouchableOpacity style={styles.sideButton} onPress={pickImage}>
+                        <TouchableOpacity style={styles.sideButton} onPress={openGallery}>
                             <AntDesign name="picture" size={24} color="white" />
                         </TouchableOpacity>
 
