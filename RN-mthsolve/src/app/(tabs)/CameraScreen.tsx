@@ -5,12 +5,13 @@ import * as ImageExpoPicker from "expo-image-picker";
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from "react-native-image-crop-picker";
 
-import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import {
     Alert,
+    AppState,
     Button,
-    Image, // ✅ AJOUTÉ : Import manquant
+    Image,
     SafeAreaView,
     StatusBar,
     StyleSheet,
@@ -26,9 +27,51 @@ export default function App() {
 
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [isPreview, setIsPreview] = useState(false);
-    const [croppedImage, setCroppedImage] = useState<string | null>(null);
     const [mediaLibraryPermission, setMediaLibraryPermission] = useState<boolean | null>(null);
+
+    // ✅ SOLUTION 1: États pour gérer le focus de la caméra
+    const [isCameraReady, setIsCameraReady] = useState(false);
+    const [isTabFocused, setIsTabFocused] = useState(true);
+    const [appState, setAppState] = useState(AppState.currentState);
+
     const cameraRef = useRef<CameraView | null>(null);
+
+    // ✅ SOLUTION 2: Gérer le focus/blur du tab avec useFocusEffect
+    useFocusEffect(
+        useCallback(() => {
+            // Quand le tab devient actif
+            setIsTabFocused(true);
+            setIsCameraReady(false);
+
+            // Petit délai pour s'assurer que le composant est monté
+            const timer = setTimeout(() => {
+                setIsCameraReady(true);
+            }, 100);
+
+            return () => {
+                // Quand on quitte le tab
+                setIsTabFocused(false);
+                setIsCameraReady(false);
+                clearTimeout(timer);
+            };
+        }, [])
+    );
+
+    // ✅ SOLUTION 3: Gérer les changements d'état de l'app (background/foreground)
+    useFocusEffect(
+        useCallback(() => {
+            const subscription = AppState.addEventListener('change', (nextAppState) => {
+                if (appState.match(/inactive|background/) && nextAppState === 'active') {
+                    // App revient au premier plan
+                    setIsCameraReady(false);
+                    setTimeout(() => setIsCameraReady(true), 200);
+                }
+                setAppState(nextAppState);
+            });
+
+            return () => subscription?.remove();
+        }, [appState])
+    );
 
     if (!permission) {
         return null;
@@ -45,26 +88,12 @@ export default function App() {
         );
     }
 
-    const openCropperImage = async () => {
-        try {
-            if (!capturedImage) {
-                Alert.alert("Lỗi", "Không có ảnh để crop");
-                return;
-            }
-            const image = await ImagePicker.openCropper({
-                mediaType: 'photo',
-                path: capturedImage,
-                width: 300,
-                height: 400,
-                cropping: true,
-                freeStyleCropEnabled: true,
-            });
-
-            console.log("Cropped image:", image);
-            setCroppedImage(image.path);
-        } catch (error) {
-            console.log("Crop cancelled:", error);
-        }
+    // ✅ SOLUTION 4
+    const refreshCamera = () => {
+        setIsCameraReady(false);
+        setTimeout(() => {
+            setIsCameraReady(true);
+        }, 100);
     };
 
     const toggleFlash = () => {
@@ -97,9 +126,8 @@ export default function App() {
 
     const pickImage = async () => {
         try {
-            // ✅ AMÉLIORÉ : Gestion des permissions galerie
             const { status } = await ImageExpoPicker.getMediaLibraryPermissionsAsync();
-            
+
             if (status !== 'granted') {
                 const { status: newStatus } = await ImageExpoPicker.requestMediaLibraryPermissionsAsync();
                 if (newStatus !== 'granted') {
@@ -134,20 +162,19 @@ export default function App() {
             });
 
             if (result) {
-                setCroppedImage(result.path);
-                
-                // ✅ AMÉLIORÉ : Vérifier permission MediaLibrary avant sauvegarde
-                const { status } = await MediaLibrary.getPermissionsAsync();
-                if (status !== 'granted') {
-                    const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
-                    if (newStatus !== 'granted') {
-                        Alert.alert('Permission refusée', 'Impossible de sauvegarder sans permission');
-                        return;
-                    }
-                }
-                
-                await MediaLibrary.saveToLibraryAsync(result.path);
-                Alert.alert('Succès', 'Image sauvegardée dans la galerie');
+                setCapturedImage(result.path);
+                setIsPreview(true);
+
+                // const { status } = await MediaLibrary.getPermissionsAsync();
+                // if (status !== 'granted') {
+                //     const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
+                //     if (newStatus !== 'granted') {
+                //         Alert.alert('Permission refuse', 'Impossible de sauvegarder sans permission');
+                //         return;
+                //     }
+                // }
+                // await MediaLibrary.saveToLibraryAsync(result.path);
+                // Alert.alert('Success', 'Image save in the gallery');
             }
         } catch (error: any) {
             if (error.code === 'E_PICKER_CANCELLED') {
@@ -160,13 +187,12 @@ export default function App() {
     };
 
     const takePicture = async () => {
-        if (cameraRef.current) {
+        if (cameraRef.current && isCameraReady) {
             try {
                 const photo = await cameraRef.current.takePictureAsync({
                     quality: 1,
                 });
-                
-                // ✅ AMÉLIORÉ : Gestion d'erreur pour le crop
+
                 try {
                     const image = await ImagePicker.openCropper({
                         mediaType: 'photo',
@@ -179,24 +205,29 @@ export default function App() {
                     setCapturedImage(image.path);
                     setIsPreview(true);
                 } catch (cropError) {
-                    // Si l'utilisateur annule le crop, on garde l'image originale
                     setCapturedImage(photo.uri);
                     setIsPreview(true);
                 }
             } catch (error) {
-                Alert.alert('Lỗi', 'Không thể chụp ảnh');
+                Alert.alert('Lỗi', 'Không thể chụp ảnh. Thử làm mới camera.');
                 console.error('Error taking picture:', error);
+                // ✅ Auto-refresh camera en cas d'erreur
+                refreshCamera();
             }
+        } else {
+            // ✅ Si camera pas prête, essayer de la réinitialiser
+            Alert.alert('Camera không sẵn sàng', 'Đang khởi động lại camera...', [
+                { text: 'OK', onPress: refreshCamera }
+            ]);
         }
     };
 
     const savePhoto = async () => {
         if (!capturedImage) return;
-        
+
         try {
-            // ✅ AMÉLIORÉ : Vérifier permission avant sauvegarde
             const { status } = await MediaLibrary.getPermissionsAsync();
-            
+
             if (status !== 'granted') {
                 const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
                 if (newStatus !== 'granted') {
@@ -229,7 +260,7 @@ export default function App() {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="light-content" />
-                <Image source={{ uri: capturedImage }} style={styles.preview} />
+                <Image source={{ uri: capturedImage }} style={styles.preview} resizeMode='contain' />
 
                 <View style={styles.previewButtonContainer}>
                     <TouchableOpacity style={styles.previewButton} onPress={retakePhoto}>
@@ -245,36 +276,52 @@ export default function App() {
         );
     }
 
+    //Loading screen 
+    if (!isTabFocused || !isCameraReady) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.loadingContainer}>
+                    <Ionicons name="camera-outline" size={50} color="#666" />
+                    <Text style={styles.loadingText}>Khởi động camera...</Text>
+                </View>
+            </View>
+        );
+    }
+
     // Main camera screen
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
-            {/* ✅ AJOUTÉ : La prop flash était manquante */}
-            <CameraView 
-                style={styles.camera} 
-                facing={facing} 
+            <CameraView
+                style={styles.camera}
+                facing={facing}
                 ref={cameraRef}
                 flash={flashMode}
+                onCameraReady={() => setIsCameraReady(true)} // ✅ Callback quand camera prête
             >
                 <View style={styles.cameraContainer}>
-                    {/* Header */}
+                    {/* Header avec bouton refresh */}
                     <View style={styles.header}>
                         <Text style={styles.headerText}>📷 Camera</Text>
+                        {/* ✅ SOLUTION 6: Bouton refresh manuel */}
+                        <TouchableOpacity
+                            style={styles.refreshButton}
+                            onPress={refreshCamera}
+                        >
+                            <Ionicons name="refresh" size={20} color="white" />
+                        </TouchableOpacity>
                     </View>
 
                     {/* Camera Controls */}
                     <View style={styles.buttonContainer}>
-                        {/* Library Camera Button */}
                         <TouchableOpacity style={styles.sideButton} onPress={openGallery}>
                             <AntDesign name="picture" size={24} color="white" />
                         </TouchableOpacity>
 
-                        {/* Capture Button */}
                         <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
                             <View style={styles.captureButtonInner} />
                         </TouchableOpacity>
 
-                        {/* Flash Button */}
                         <TouchableOpacity style={styles.sideButton} onPress={toggleFlash}>
                             <Ionicons name={getFlashIcon()} size={28} color="white" />
                         </TouchableOpacity>
@@ -303,11 +350,37 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
         alignItems: 'center',
         backgroundColor: 'rgba(0,0,0,0.3)',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        position: 'relative',
     },
     headerText: {
         color: 'white',
         fontSize: 20,
         fontWeight: 'bold',
+    },
+    // ✅ NOUVEAU: Style pour bouton refresh
+    refreshButton: {
+        position: 'absolute',
+        right: 20,
+        top: 60,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    // ✅ NOUVEAU: Loading screen
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        color: '#666',
+        fontSize: 16,
+        marginTop: 15,
     },
     buttonContainer: {
         flexDirection: 'row',
@@ -346,8 +419,15 @@ const styles = StyleSheet.create({
     },
     preview: {
         flex: 1,
+        width: "100%",
+        height: "100%",
+        backgroundColor: "black",
+
     },
     previewButtonContainer: {
+        position: 'absolute',
+        bottom: 0,
+        width: '100%',
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
