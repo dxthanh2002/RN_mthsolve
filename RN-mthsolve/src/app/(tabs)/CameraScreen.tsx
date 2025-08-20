@@ -5,19 +5,18 @@ import * as ImageExpoPicker from "expo-image-picker";
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from "react-native-image-crop-picker";
 
-
 import { router } from 'expo-router';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
     Alert,
     Button,
-    Image,
+    Image, // ✅ AJOUTÉ : Import manquant
     SafeAreaView,
     StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 export default function App() {
@@ -30,9 +29,6 @@ export default function App() {
     const [croppedImage, setCroppedImage] = useState<string | null>(null);
     const [mediaLibraryPermission, setMediaLibraryPermission] = useState<boolean | null>(null);
     const cameraRef = useRef<CameraView | null>(null);
-
-
-
 
     if (!permission) {
         return null;
@@ -49,6 +45,28 @@ export default function App() {
         );
     }
 
+    const openCropperImage = async () => {
+        try {
+            if (!capturedImage) {
+                Alert.alert("Lỗi", "Không có ảnh để crop");
+                return;
+            }
+            const image = await ImagePicker.openCropper({
+                mediaType: 'photo',
+                path: capturedImage,
+                width: 300,
+                height: 400,
+                cropping: true,
+                freeStyleCropEnabled: true,
+            });
+
+            console.log("Cropped image:", image);
+            setCroppedImage(image.path);
+        } catch (error) {
+            console.log("Crop cancelled:", error);
+        }
+    };
+
     const toggleFlash = () => {
         setFlashMode(current => {
             switch (current) {
@@ -64,7 +82,6 @@ export default function App() {
         });
     };
 
-
     const getFlashIcon = () => {
         switch (flashMode) {
             case 'off':
@@ -79,15 +96,31 @@ export default function App() {
     };
 
     const pickImage = async () => {
-        const result = await ImageExpoPicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            allowsEditing: true,
-            quality: 1,
-        });
+        try {
+            // ✅ AMÉLIORÉ : Gestion des permissions galerie
+            const { status } = await ImageExpoPicker.getMediaLibraryPermissionsAsync();
+            
+            if (status !== 'granted') {
+                const { status: newStatus } = await ImageExpoPicker.requestMediaLibraryPermissionsAsync();
+                if (newStatus !== 'granted') {
+                    Alert.alert('Permission refusée', 'Accès à la galerie nécessaire');
+                    return;
+                }
+            }
 
-        if (!result.canceled) {
-            setCapturedImage(result.assets[0].uri);
-            setIsPreview(true);
+            const result = await ImageExpoPicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                quality: 1,
+            });
+
+            if (!result.canceled) {
+                setCapturedImage(result.assets[0].uri);
+                setIsPreview(true);
+            }
+        } catch (error) {
+            console.error('Error picking image:', error);
+            Alert.alert('Erreur', 'Impossible d\'ouvrir la galerie');
         }
     };
 
@@ -102,19 +135,29 @@ export default function App() {
 
             if (result) {
                 setCroppedImage(result.path);
+                
+                // ✅ AMÉLIORÉ : Vérifier permission MediaLibrary avant sauvegarde
+                const { status } = await MediaLibrary.getPermissionsAsync();
+                if (status !== 'granted') {
+                    const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
+                    if (newStatus !== 'granted') {
+                        Alert.alert('Permission refusée', 'Impossible de sauvegarder sans permission');
+                        return;
+                    }
+                }
+                
                 await MediaLibrary.saveToLibraryAsync(result.path);
+                Alert.alert('Succès', 'Image sauvegardée dans la galerie');
             }
         } catch (error: any) {
             if (error.code === 'E_PICKER_CANCELLED') {
                 router.replace("/(tabs)/CameraScreen");
             } else {
                 console.error("Open gallery error:", error);
+                Alert.alert('Erreur', 'Erreur lors de l\'ouverture de la galerie');
             }
         }
     };
-
-
-
 
     const takePicture = async () => {
         if (cameraRef.current) {
@@ -122,8 +165,24 @@ export default function App() {
                 const photo = await cameraRef.current.takePictureAsync({
                     quality: 1,
                 });
-                setCapturedImage(photo.uri);
-                setIsPreview(true);
+                
+                // ✅ AMÉLIORÉ : Gestion d'erreur pour le crop
+                try {
+                    const image = await ImagePicker.openCropper({
+                        mediaType: 'photo',
+                        path: photo.uri,
+                        width: 300,
+                        height: 400,
+                        cropping: true,
+                        freeStyleCropEnabled: true,
+                    });
+                    setCapturedImage(image.path);
+                    setIsPreview(true);
+                } catch (cropError) {
+                    // Si l'utilisateur annule le crop, on garde l'image originale
+                    setCapturedImage(photo.uri);
+                    setIsPreview(true);
+                }
             } catch (error) {
                 Alert.alert('Lỗi', 'Không thể chụp ảnh');
                 console.error('Error taking picture:', error);
@@ -133,7 +192,19 @@ export default function App() {
 
     const savePhoto = async () => {
         if (!capturedImage) return;
+        
         try {
+            // ✅ AMÉLIORÉ : Vérifier permission avant sauvegarde
+            const { status } = await MediaLibrary.getPermissionsAsync();
+            
+            if (status !== 'granted') {
+                const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
+                if (newStatus !== 'granted') {
+                    Alert.alert('Permission refusée', 'Accès à la galerie nécessaire pour sauvegarder');
+                    return;
+                }
+            }
+
             await MediaLibrary.saveToLibraryAsync(capturedImage);
             Alert.alert('Thành công', 'Ảnh đã được lưu vào thư viện');
             setIsPreview(false);
@@ -153,14 +224,13 @@ export default function App() {
         setFacing(current => (current === 'back' ? 'front' : 'back'));
     };
 
-
-
     // Preview screen after taking photo
     if (isPreview && capturedImage) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="light-content" />
                 <Image source={{ uri: capturedImage }} style={styles.preview} />
+
                 <View style={styles.previewButtonContainer}>
                     <TouchableOpacity style={styles.previewButton} onPress={retakePhoto}>
                         <Ionicons name="camera" size={30} color="white" />
@@ -179,7 +249,13 @@ export default function App() {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
-            <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
+            {/* ✅ AJOUTÉ : La prop flash était manquante */}
+            <CameraView 
+                style={styles.camera} 
+                facing={facing} 
+                ref={cameraRef}
+                flash={flashMode}
+            >
                 <View style={styles.cameraContainer}>
                     {/* Header */}
                     <View style={styles.header}>
@@ -198,7 +274,7 @@ export default function App() {
                             <View style={styles.captureButtonInner} />
                         </TouchableOpacity>
 
-                        {/* Flip Camera Button */}
+                        {/* Flash Button */}
                         <TouchableOpacity style={styles.sideButton} onPress={toggleFlash}>
                             <Ionicons name={getFlashIcon()} size={28} color="white" />
                         </TouchableOpacity>
@@ -310,4 +386,3 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
 });
-
