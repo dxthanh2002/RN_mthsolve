@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraType, CameraView, FlashMode, useCameraPermissions } from 'expo-camera';
 import * as ImageExpoPicker from "expo-image-picker";
 import * as MediaLibrary from 'expo-media-library';
 
 
-
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Alert,
+    Button,
     Image,
     SafeAreaView,
     StatusBar,
@@ -20,7 +20,9 @@ import {
 
 export default function App() {
     const [facing, setFacing] = useState<CameraType>('back');
+    const [flashMode, setFlashMode] = useState<FlashMode>('off');
     const [permission, requestPermission] = useCameraPermissions();
+
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [isPreview, setIsPreview] = useState(false);
     const [croppedImage, setCroppedImage] = useState<string | null>(null);
@@ -28,11 +30,50 @@ export default function App() {
     const cameraRef = useRef<CameraView | null>(null);
 
 
-    // Request media library permission
-    const requestMediaLibraryPermission = async () => {
-        const { status } = await MediaLibrary.requestPermissionsAsync();
 
-        setMediaLibraryPermission(status === 'granted');
+
+    if (!permission) {
+        return null;
+    }
+
+    if (!permission.granted) {
+        return (
+            <View style={styles.container}>
+                <Text style={{ textAlign: "center" }}>
+                    We need your permission to use the camera
+                </Text>
+                <Button onPress={requestPermission} title="Grant permission" />
+            </View>
+        );
+    }
+
+    const toggleFlash = () => {
+        setFlashMode(current => {
+            switch (current) {
+                case 'off':
+                    return 'on';
+                case 'on':
+                    return 'auto';
+                case 'auto':
+                    return 'off';
+                default:
+                    return 'off';
+            }
+        });
+    };
+
+
+    const getFlashIcon = () => {
+        switch (flashMode) {
+            case 'off':
+                return 'flash-off';
+            case 'on':
+                return 'flash';
+            case 'auto':
+                return 'flash-outline';
+            default:
+                return 'flash-off';
+        }
     };
 
     const pickImage = async () => {
@@ -48,12 +89,32 @@ export default function App() {
         }
     };
 
+    // const openGallery = async () => {
+    //     try {
+    //         const result = await ImagePicker.openPicker({
+    //             cropping: true,
+    //             mediaType: 'photo',
+    //             includeBase64: false,
+    //             freeStyleCropEnabled: true,
+    //         });
+
+    //         if (result) {
+    //             setCroppedImage(result.path);
+    //             await MediaLibrary.saveToLibraryAsync(result.path);
+
+    //         }
+    //     } catch (error) {
+    //         console.error('Lỗi chọn ảnh:', error);
+    //     }
+    // }
+
+
+
     const takePicture = async () => {
         if (cameraRef.current) {
             try {
                 const photo = await cameraRef.current.takePictureAsync({
                     quality: 1,
-                    base64: false,
                 });
                 setCapturedImage(photo.uri);
                 setIsPreview(true);
@@ -66,17 +127,6 @@ export default function App() {
 
     const savePhoto = async () => {
         if (!capturedImage) return;
-
-        // Request permission if not granted yet
-        if (mediaLibraryPermission === null) {
-            await requestMediaLibraryPermission();
-        }
-
-        if (mediaLibraryPermission === false) {
-            Alert.alert('Lỗi', 'Cần quyền truy cập thư viện ảnh để lưu');
-            return;
-        }
-
         try {
             await MediaLibrary.saveToLibraryAsync(capturedImage);
             Alert.alert('Thành công', 'Ảnh đã được lưu vào thư viện');
@@ -97,29 +147,7 @@ export default function App() {
         setFacing(current => (current === 'back' ? 'front' : 'back'));
     };
 
-    if (!permission) {
-        // Camera permissions are still loading
-        return (
-            <View style={styles.container}>
-                <Text style={styles.message}>Đang tải...</Text>
-            </View>
-        );
-    }
 
-    if (!permission.granted) {
-        // Camera permissions are not granted yet
-        return (
-            <View style={styles.container}>
-                <View style={styles.permissionContainer}>
-                    <Ionicons name="camera-outline" size={80} color="#666" />
-                    <Text style={styles.message}>Cần quyền truy cập camera</Text>
-                    <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-                        <Text style={styles.permissionButtonText}>Cấp quyền</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        );
-    }
 
     // Preview screen after taking photo
     if (isPreview && capturedImage) {
@@ -165,8 +193,8 @@ export default function App() {
                         </TouchableOpacity>
 
                         {/* Flip Camera Button */}
-                        <TouchableOpacity style={styles.sideButton} onPress={toggleCameraFacing}>
-                            <Ionicons name="camera-reverse-outline" size={28} color="white" />
+                        <TouchableOpacity style={styles.sideButton} onPress={toggleFlash}>
+                            <Ionicons name={getFlashIcon()} size={28} color="white" />
                         </TouchableOpacity>
                     </View>
                 </View>
