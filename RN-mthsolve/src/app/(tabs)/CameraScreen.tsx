@@ -297,7 +297,7 @@ export default function App() {
                 facing={facing}
                 ref={cameraRef}
                 flash={flashMode}
-                onCameraReady={() => setIsCameraReady(true)} // ✅ Callback quand camera prête
+                onCameraReady={() => setIsCameraReady(true)} // ✅ Callback camera
             >
                 <View style={styles.cameraContainer}>
                     {/* Header avec bouton refresh */}
