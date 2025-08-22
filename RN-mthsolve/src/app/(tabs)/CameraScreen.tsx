@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { CameraType, CameraView, FlashMode, useCameraPermissions } from 'expo-camera';
 import * as ImageExpoPicker from "expo-image-picker";
@@ -9,7 +10,6 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import {
     Alert,
-    AppState,
     Button,
     Image,
     SafeAreaView,
@@ -24,66 +24,39 @@ export default function App() {
     const [facing, setFacing] = useState<CameraType>('back');
     const [flashMode, setFlashMode] = useState<FlashMode>('off');
     const [permission, requestPermission] = useCameraPermissions();
-
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [isPreview, setIsPreview] = useState(false);
-    const [mediaLibraryPermission, setMediaLibraryPermission] = useState<boolean | null>(null);
-
-    // ✅ SOLUTION 1: États pour gérer le focus de la caméra
     const [isCameraReady, setIsCameraReady] = useState(false);
     const [isTabFocused, setIsTabFocused] = useState(true);
-    const [appState, setAppState] = useState(AppState.currentState);
-
     const cameraRef = useRef<CameraView | null>(null);
 
-    // ✅ SOLUTION 2: Gérer le focus/blur du tab avec useFocusEffect
+
     useFocusEffect(
         useCallback(() => {
-            // Quand le tab devient actif
             setIsTabFocused(true);
             setIsCameraReady(false);
-
-            // Petit délai pour s'assurer que le composant est monté
             const timer = setTimeout(() => {
                 setIsCameraReady(true);
             }, 100);
 
             return () => {
-                // Quand on quitte le tab
                 setIsTabFocused(false);
                 setIsCameraReady(false);
                 clearTimeout(timer);
             };
         }, [])
     );
-
-    // ✅ SOLUTION 3: Gérer les changements d'état de l'app (background/foreground)
-    useFocusEffect(
-        useCallback(() => {
-            const subscription = AppState.addEventListener('change', (nextAppState) => {
-                if (appState.match(/inactive|background/) && nextAppState === 'active') {
-                    // App revient au premier plan
-                    setIsCameraReady(false);
-                    setTimeout(() => setIsCameraReady(true), 200);
-                }
-                setAppState(nextAppState);
-            });
-
-            return () => subscription?.remove();
-        }, [appState])
-    );
-
-    if (!permission) {
-        return null;
-    }
-
+    if (!permission) return null;
     if (!permission.granted) {
         return (
             <View style={styles.container}>
-                <Text style={{ textAlign: "center" }}>
-                    We need your permission to use the camera
-                </Text>
-                <Button onPress={requestPermission} title="Grant permission" />
+                <View style={styles.card}>
+                    <Ionicons name="camera-outline" size={48} color="#007AFF" style={{ marginBottom: 12 }} />
+                    <Text style={styles.title}>We need your permission to access the camera in order to take photos.</Text>
+                    <View style={{ marginTop: 16 }}>
+                        <Button onPress={requestPermission} title="Grant Permission" color="#007AFF" />
+                    </View>
+                </View>
             </View>
         );
     }
@@ -160,21 +133,9 @@ export default function App() {
                 includeBase64: false,
                 freeStyleCropEnabled: true,
             });
-
             if (result) {
                 setCapturedImage(result.path);
                 setIsPreview(true);
-
-                // const { status } = await MediaLibrary.getPermissionsAsync();
-                // if (status !== 'granted') {
-                //     const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
-                //     if (newStatus !== 'granted') {
-                //         Alert.alert('Permission refuse', 'Impossible de sauvegarder sans permission');
-                //         return;
-                //     }
-                // }
-                // await MediaLibrary.saveToLibraryAsync(result.path);
-                // Alert.alert('Success', 'Image save in the gallery');
             }
         } catch (error: any) {
             if (error.code === 'E_PICKER_CANCELLED') {
@@ -211,11 +172,9 @@ export default function App() {
             } catch (error) {
                 Alert.alert('Lỗi', 'Không thể chụp ảnh. Thử làm mới camera.');
                 console.error('Error taking picture:', error);
-                // ✅ Auto-refresh camera en cas d'erreur
                 refreshCamera();
             }
         } else {
-            // ✅ Si camera pas prête, essayer de la réinitialiser
             Alert.alert('Camera không sẵn sàng', 'Đang khởi động lại camera...', [
                 { text: 'OK', onPress: refreshCamera }
             ]);
@@ -251,9 +210,6 @@ export default function App() {
         setIsPreview(false);
     };
 
-    const toggleCameraFacing = () => {
-        setFacing(current => (current === 'back' ? 'front' : 'back'));
-    };
 
     // Preview screen after taking photo
     if (isPreview && capturedImage) {
@@ -315,11 +271,11 @@ export default function App() {
                     {/* Camera Controls */}
                     <View style={styles.buttonContainer}>
                         <TouchableOpacity style={styles.sideButton} onPress={openGallery}>
-                            <AntDesign name="picture" size={24} color="white" />
+                            <AntDesign name="picture" size={28} color="white" />
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
-                            <View style={styles.captureButtonInner} />
+                            <MaterialCommunityIcons name="line-scan" size={50} color="white" />
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.sideButton} onPress={toggleFlash}>
@@ -336,6 +292,29 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: 'black',
+    },
+    card: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#f5f5f5",
+        padding: 20,
+    },
+    title: {
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        padding: 24,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
+        width: "90%",
+    },
+    message: {
+        fontSize: 14,
+        color: "#666",
+        textAlign: "center",
     },
     camera: {
         flex: 1,
@@ -447,12 +426,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
-    },
-    message: {
-        textAlign: 'center',
-        paddingBottom: 20,
-        color: '#666',
-        fontSize: 16,
     },
     permissionButton: {
         backgroundColor: '#007AFF',

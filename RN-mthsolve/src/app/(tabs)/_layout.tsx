@@ -1,58 +1,60 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Colors } from '@/constants/Colors';
+import {
+  createNativeBottomTabNavigator,
+  NativeBottomTabNavigationEventMap,
+  NativeBottomTabNavigationOptions,
+} from '@bottom-tabs/react-navigation';
+import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { ParamListBase, TabNavigationState } from '@react-navigation/native';
+import { withLayoutContext } from 'expo-router';
 import { Platform } from 'react-native';
 
-import { HapticTab } from '@/components/HapticTab';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
+const cameraIcon = Ionicons.getImageSourceSync("camera-outline", 30);
+const personIcon = Ionicons.getImageSourceSync("person-outline", 30);
+const BottomTabNavigator = createNativeBottomTabNavigator().Navigator;
+
+
+const Tabs = withLayoutContext<
+  NativeBottomTabNavigationOptions,
+  typeof BottomTabNavigator,
+  TabNavigationState<ParamListBase>,
+  NativeBottomTabNavigationEventMap
+>(BottomTabNavigator);
+
+// import { Tabs } from 'expo-router';
 import { useColorScheme } from '@/hooks/useColorScheme';
+
+
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}
+      tabLabelStyle={{ fontSize: 12 }}
+      tabBarActiveTintColor={Colors[colorScheme ?? "light"].tint}
+      tabBarInactiveTintColor="gray"
     >
       <Tabs.Screen
         name="CameraScreen"
         options={{
-          title: 'CameraScreen',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="camera" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="camera"
-        options={{
           title: 'Camera',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="camera" size={size} color={color} />
-          ),
+          tabBarIcon: () =>
+            Platform.OS === "ios"
+              ? ({ sfSymbol: "camera" })
+              : cameraIcon!
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
-          ),
+          title: 'User',
+          tabBarIcon: () =>
+            Platform.OS === "ios"
+              ? ({ sfSymbol: "person" })
+              : personIcon!
         }}
       />
-    </Tabs>
+    </Tabs >
   );
 }
