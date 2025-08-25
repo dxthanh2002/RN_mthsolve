@@ -1,8 +1,32 @@
 import { Ionicons } from "@expo/vector-icons";
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router } from "expo-router";
-import React, { FC } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FC } from "react";
+import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const shareInvition = async () => {
+  try {
+    const result = await Share.share({
+      title: 'Chia sẻ',
+      url: "www.google.com",
+      message: 'SHARING',
+    }, {
+      dialogTitle: "Share to your friends",
+    });
+    if (result.action === Share.sharedAction) {
+      if (result.activityType) {
+        // shared with activity type of result.activityType
+      } else {
+        // shared
+      }
+    } else if (result.action === Share.dismissedAction) {
+      // dismissed
+    }
+  } catch (error: any) {
+    Alert.alert(error.message);
+  }
+};
 
 interface MenuItemProps {
   title: string;
@@ -27,7 +51,7 @@ const App: FC = () => {
           <View style={{ flexDirection: "row", alignItems: "center" }}></View>
           <View style={styles.rightIcons}>
             <TouchableOpacity onPress={() => router.navigate("/pages/mail")}>
-              <Ionicons name="mail-outline" size={30} color="#000" style={{ marginRight: 16 }} />
+              <MaterialCommunityIcons name="email-outline" size={30} color="black" style={{ marginRight: 16 }} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.navigate("/setting/setting.modal")}>
               <Ionicons name="menu" size={30} color="#000" />
@@ -65,7 +89,6 @@ const App: FC = () => {
         {/* Menu */}
         <View style={styles.menu}>
           <MenuItem title="Q&A History" onPress={() => router.navigate("/pages/history")} />
-          <MenuItem title="Reminders" onPress={() => router.navigate("/pages/history")} />
           <MenuItem title="Feedback" onPress={() => router.navigate("/pages/history")} />
         </View>
 
@@ -73,10 +96,8 @@ const App: FC = () => {
         <View style={styles.inviteContainer}>
           <View style={styles.inviteHeader}>
             <Text style={styles.inviteTitle}>Invite Friends</Text>
-            <Text style={styles.freePoints}>Free Points</Text>
           </View>
-          <Text style={styles.progress}>1   2   3   4   5 → 🎁 100</Text>
-          <TouchableOpacity style={styles.shareBtn}>
+          <TouchableOpacity style={styles.shareBtn} onPress={shareInvition}>
             <Text style={styles.shareText}>Share</Text>
           </TouchableOpacity>
         </View>
@@ -89,7 +110,7 @@ export default App;
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    paddingHorizontal:20,
     backgroundColor: "#f9f9fb",
   },
   header: {

@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { CameraType, CameraView, FlashMode, useCameraPermissions } from 'expo-camera';
 import * as ImageExpoPicker from "expo-image-picker";
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from "react-native-image-crop-picker";
 
+import { uploadImageAPI } from '@/utils/api';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import {
@@ -30,14 +31,13 @@ export default function App() {
     const [isTabFocused, setIsTabFocused] = useState(true);
     const cameraRef = useRef<CameraView | null>(null);
 
-
     useFocusEffect(
         useCallback(() => {
             setIsTabFocused(true);
             setIsCameraReady(false);
             const timer = setTimeout(() => {
                 setIsCameraReady(true);
-            }, 100);
+            }, 10);
 
             return () => {
                 setIsTabFocused(false);
@@ -104,7 +104,7 @@ export default function App() {
             if (status !== 'granted') {
                 const { status: newStatus } = await ImageExpoPicker.requestMediaLibraryPermissionsAsync();
                 if (newStatus !== 'granted') {
-                    Alert.alert('Permission refusée', 'Accès à la galerie nécessaire');
+                    Alert.alert('Permission refused', 'Access is nescessary');
                     return;
                 }
             }
@@ -112,7 +112,7 @@ export default function App() {
             const result = await ImageExpoPicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
                 allowsEditing: true,
-                quality: 1,
+                legacy: true
             });
 
             if (!result.canceled) {
@@ -132,6 +132,9 @@ export default function App() {
                 mediaType: 'photo',
                 includeBase64: false,
                 freeStyleCropEnabled: true,
+                showCropGuidelines: false,
+                showCropFrame: false
+
             });
             if (result) {
                 setCapturedImage(result.path);
@@ -205,6 +208,32 @@ export default function App() {
         }
     };
 
+    const uploadImage = async () => {
+        if (!capturedImage) {
+            Alert.alert('Error', 'there is no picture');
+            return;
+        }
+        try {
+            router.push({
+                pathname: '/pages/resolve',
+                params: { capturedImage },
+            });
+            const res = await uploadImageAPI(capturedImage);
+            if (res.data) {
+                console.log('Sẵn sàng để tải lên:', capturedImage);
+                Alert.alert('Demo', 'Sẵn sàng gửi lên backend!');
+                setIsPreview(false); // Tắt chế độ xem trước
+                setCapturedImage(null); // Xóa ảnh đã chọn
+
+            } else {
+                Alert.alert('Lỗi', res.data.message);
+            }
+        } catch (error) {
+            console.error('Lỗi tải lên:', error);
+            Alert.alert('Lỗi', 'Có lỗi xảy ra khi gửi ảnh');
+        }
+    };
+
     const retakePhoto = () => {
         setCapturedImage(null);
         setIsPreview(false);
@@ -223,7 +252,7 @@ export default function App() {
                         <Ionicons name="camera" size={30} color="white" />
                         <Text style={styles.previewButtonText}>Chụp lại</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.previewButton} onPress={savePhoto}>
+                    <TouchableOpacity style={styles.previewButton} onPress={uploadImage}>
                         <Ionicons name="checkmark" size={30} color="white" />
                         <Text style={styles.previewButtonText}>Lưu ảnh</Text>
                     </TouchableOpacity>
@@ -259,18 +288,11 @@ export default function App() {
                     {/* Header avec bouton refresh */}
                     <View style={styles.header}>
                         <Text style={styles.headerText}>📷 Camera</Text>
-                        {/* ✅ SOLUTION 6: Bouton refresh manuel */}
-                        <TouchableOpacity
-                            style={styles.refreshButton}
-                            onPress={refreshCamera}
-                        >
-                            <Ionicons name="refresh" size={20} color="white" />
-                        </TouchableOpacity>
                     </View>
 
                     {/* Camera Controls */}
                     <View style={styles.buttonContainer}>
-                        <TouchableOpacity style={styles.sideButton} onPress={openGallery}>
+                        <TouchableOpacity style={styles.sideButton} onPress={pickImage}>
                             <AntDesign name="picture" size={28} color="white" />
                         </TouchableOpacity>
 

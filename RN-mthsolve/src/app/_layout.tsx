@@ -25,6 +25,11 @@ export default function RootLayout() {
         <Stack.Screen name="pages/history" options={{ headerShown: false }} />
         <Stack.Screen name="pages/mail" options={{ headerShown: false }} />
         <Stack.Screen name="pages/remind" options={{ headerShown: false }} />
+        <Stack.Screen name="pages/resolve" options={{
+          headerShown: false,
+          animation: "fade",
+          presentation: "transparentModal",
+        }} />
         <Stack.Screen
           name="setting/setting.modal"
           options={{
