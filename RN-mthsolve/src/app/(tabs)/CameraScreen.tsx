@@ -3,9 +3,9 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { CameraType, CameraView, FlashMode, useCameraPermissions } from 'expo-camera';
 import * as ImageExpoPicker from "expo-image-picker";
-import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from "react-native-image-crop-picker";
 
+import { useApp } from '@/context/app.context';
 import { uploadImageAPI } from '@/utils/api';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
@@ -30,7 +30,7 @@ export default function App() {
     const [isCameraReady, setIsCameraReady] = useState(false);
     const [isTabFocused, setIsTabFocused] = useState(true);
     const cameraRef = useRef<CameraView | null>(null);
-
+    const { addImage } = useApp();
     useFocusEffect(
         useCallback(() => {
             setIsTabFocused(true);
@@ -125,30 +125,30 @@ export default function App() {
         }
     };
 
-    const openGallery = async () => {
-        try {
-            const result = await ImagePicker.openPicker({
-                cropping: true,
-                mediaType: 'photo',
-                includeBase64: false,
-                freeStyleCropEnabled: true,
-                showCropGuidelines: false,
-                showCropFrame: false
+    // const openGallery = async () => {
+    //     try {
+    //         const result = await ImagePicker.openPicker({
+    //             cropping: true,
+    //             mediaType: 'photo',
+    //             includeBase64: false,
+    //             freeStyleCropEnabled: true,
+    //             showCropGuidelines: false,
+    //             showCropFrame: false
 
-            });
-            if (result) {
-                setCapturedImage(result.path);
-                setIsPreview(true);
-            }
-        } catch (error: any) {
-            if (error.code === 'E_PICKER_CANCELLED') {
-                router.replace("/(tabs)/CameraScreen");
-            } else {
-                console.error("Open gallery error:", error);
-                Alert.alert('Erreur', 'Erreur lors de l\'ouverture de la galerie');
-            }
-        }
-    };
+    //         });
+    //         if (result) {
+    //             setCapturedImage(result.path);
+    //             setIsPreview(true);
+    //         }
+    //     } catch (error: any) {
+    //         if (error.code === 'E_PICKER_CANCELLED') {
+    //             router.replace("/(tabs)/CameraScreen");
+    //         } else {
+    //             console.error("Open gallery error:", error);
+    //             Alert.alert('Erreur', 'Erreur lors de l\'ouverture de la galerie');
+    //         }
+    //     }
+    // };
 
     const takePicture = async () => {
         if (cameraRef.current && isCameraReady) {
@@ -184,29 +184,29 @@ export default function App() {
         }
     };
 
-    const savePhoto = async () => {
-        if (!capturedImage) return;
+    // const savePhoto = async () => {
+    //     if (!capturedImage) return;
 
-        try {
-            const { status } = await MediaLibrary.getPermissionsAsync();
+    //     try {
+    //         const { status } = await MediaLibrary.getPermissionsAsync();
 
-            if (status !== 'granted') {
-                const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
-                if (newStatus !== 'granted') {
-                    Alert.alert('Permission refusée', 'Accès à la galerie nécessaire pour sauvegarder');
-                    return;
-                }
-            }
+    //         if (status !== 'granted') {
+    //             const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
+    //             if (newStatus !== 'granted') {
+    //                 Alert.alert('Permission refusée', 'Accès à la galerie nécessaire pour sauvegarder');
+    //                 return;
+    //             }
+    //         }
 
-            await MediaLibrary.saveToLibraryAsync(capturedImage);
-            Alert.alert('Thành công', 'Ảnh đã được lưu vào thư viện');
-            setIsPreview(false);
-            setCapturedImage(null);
-        } catch (error) {
-            Alert.alert('Lỗi', 'Không thể lưu ảnh');
-            console.error('Error saving photo:', error);
-        }
-    };
+    //         await MediaLibrary.saveToLibraryAsync(capturedImage);
+    //         Alert.alert('Thành công', 'Ảnh đã được lưu vào thư viện');
+    //         setIsPreview(false);
+    //         setCapturedImage(null);
+    //     } catch (error) {
+    //         Alert.alert('Lỗi', 'Không thể lưu ảnh');
+    //         console.error('Error saving photo:', error);
+    //     }
+    // };
 
     const uploadImage = async () => {
         if (!capturedImage) {
@@ -214,6 +214,7 @@ export default function App() {
             return;
         }
         try {
+            addImage(capturedImage);
             router.push({
                 pathname: '/pages/resolve',
                 params: { capturedImage },

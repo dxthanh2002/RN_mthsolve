@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import  AppProvider  from '@/context/app.context';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function RootLayout() {
@@ -18,29 +19,31 @@ export default function RootLayout() {
   }
 
   return (
-
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="pages/history" options={{ headerShown: false }} />
-        <Stack.Screen name="pages/mail" options={{ headerShown: false }} />
-        <Stack.Screen name="pages/remind" options={{ headerShown: false }} />
-        <Stack.Screen name="pages/resolve" options={{
-          headerShown: false,
-          animation: "fade",
-          presentation: "transparentModal",
-        }} />
-        <Stack.Screen
-          name="setting/setting.modal"
-          options={{
+    <AppProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="pages/history" options={{ headerShown: false }} />
+          <Stack.Screen name="pages/mail" options={{ headerShown: false }} />
+          <Stack.Screen name="pages/remind" options={{ headerShown: false }} />
+          <Stack.Screen name="pages/resolve" options={{
             headerShown: false,
             animation: "fade",
             presentation: "transparentModal",
           }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+          <Stack.Screen
+            name="setting/setting.modal"
+            options={{
+              headerShown: false,
+              animation: "fade",
+              presentation: "transparentModal",
+            }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </AppProvider>
+
 
 
   );
